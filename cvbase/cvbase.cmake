@@ -1,7 +1,11 @@
 # HF computer vision library
+
+# Requires the following variables to be set:
+#   CFG_DIR - path to cfg_parser of Clemens Wacha (http://www.wacha.ch/wiki/cfg_parser)
+
 cmake_minimum_required(VERSION 2.8)
 
-# include guard
+
 if ( NOT CVBASE_INCLUDED ) 
 
 set(CVBASE_INCLUDED "CVBASE_INCLUDED")
