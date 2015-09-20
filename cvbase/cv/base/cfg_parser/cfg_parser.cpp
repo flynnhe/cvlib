@@ -16,7 +16,7 @@
 
 #ifdef DEBUG
 	#include <stdio.h>
-	#define ErrorMessage(x,...) printf(x)
+	//#define printf(x,...) printf(x)
 	#define DebugMessage(x,...) printf(x)
 #else
 	#define ErrorMessage(x) 
@@ -28,6 +28,7 @@ using namespace std;
 ConfigParser::ConfigParser(const std::string& in_file) {
 	filename = in_file;
 	pformat = 0;
+  isvalid = false;
 	
 	if(in_file != "") {
 		readFile(in_file);
@@ -35,6 +36,11 @@ ConfigParser::ConfigParser(const std::string& in_file) {
 }
 
 ConfigParser::~ConfigParser() {}
+
+bool ConfigParser::isValid()
+{
+  return isvalid;
+}
 
 int ConfigParser::readFile(const std::string& in_file) {
 	FILE* fd = NULL;
@@ -48,7 +54,7 @@ int ConfigParser::readFile(const std::string& in_file) {
 	
 	fd = fopen(in_file.c_str(), "rt");
 	if(!fd) {
-		ErrorMessage("ConfigParser: Could not open %s\n", filename.c_str());
+		printf("ConfigParser: Could not open %s\n", filename.c_str());
 		return 0;
 	}
 	
@@ -111,10 +117,10 @@ int ConfigParser::readFile(const std::string& in_file) {
 				break;
 			default:
 				// error
-				ErrorMessage("ConfigParser:%s:%d: Invalid format: %s\nValid format is 'keyword = value' or 'keyword value'\n", in_file.c_str(), linenumber, tmp.c_str());
-				//ErrorMessage("Tokens read: ");
-				//for(unsigned int i = 0; i < tokens.size(); i++) ErrorMessage("%s, ", tokens[i].c_str());
-				//ErrorMessage("\n");
+				printf("ConfigParser:%s:%d: Invalid format: %s\nValid format is 'keyword = value' or 'keyword value'\n", in_file.c_str(), linenumber, tmp.c_str());
+				//printf("Tokens read: ");
+				//for(unsigned int i = 0; i < tokens.size(); i++) printf("%s, ", tokens[i].c_str());
+				//printf("\n");
 				break;	
 		}
 		
@@ -126,6 +132,7 @@ int ConfigParser::readFile(const std::string& in_file) {
 		comment = "";
 		tmp = "";
 	}	
+  isvalid = true;
 	fclose(fd);
 	return 1;
 }
@@ -143,7 +150,7 @@ int ConfigParser::writeFile(const std::string& out_file) {
 	
 	fd = fopen(file_name.c_str(), "wt");
 	if(!fd) {
-		ErrorMessage("ConfigParser: Could not open %s for writing\n", file_name.c_str());
+		printf("ConfigParser: Could not open %s for writing\n", file_name.c_str());
 		return 0;
 	}
 			

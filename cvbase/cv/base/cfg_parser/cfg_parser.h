@@ -33,6 +33,8 @@ public:
 	ConfigParser(const std::string& in_file = "");
 	~ConfigParser();
 
+  bool isValid();
+
 	// loads the given configuration file
 	int readFile(const std::string& in_file);
 	// writes the current configuration to the given file. I file not given, write back into the inputfile
@@ -132,6 +134,7 @@ private:
 		SL_COMMENT
 	} SPLIT_LINE_STATE;
 	
+  bool isvalid;
 	std::string filename;
 	bool pformat;
 	std::list<ConfigSection> sections;

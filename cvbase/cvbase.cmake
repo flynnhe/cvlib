@@ -12,6 +12,7 @@ set(CVBASE_INCLUDED "CVBASE_INCLUDED")
 
 include_directories(${CMAKE_CURRENT_LIST_DIR} ${CFG_DIR})
 include(${CMAKE_CURRENT_LIST_DIR}/../scripts/cmake/opencv.cmake)
+#include(${CMAKE_CURRENT_LIST_DIR}/cv/base/cfg_parser/cfg_parser.cmake)
 
 set(__CVBASE_P ${CMAKE_CURRENT_LIST_DIR})
 
@@ -22,8 +23,17 @@ set(CVBASE_SOURCES
 set(CVBASE_HEADERS
 	${__CVBASE_P}/cv/base/utils.h
 	)
-  
+
 add_library(cvbase ${CVBASE_LIBTYPE} ${CVBASE_SOURCES} ${CVBASE_HEADERS})
+
+# cfg parsing files
+set(CFG_SOURCES
+	${CMAKE_CURRENT_LIST_DIR}/cv/base/cfg_parser/cfg_parser.h
+	${CMAKE_CURRENT_LIST_DIR}/cv/base/cfg_parser/cfg_parser.cpp
+	)
+  
+add_library(cfg_lib ${CFG_SOURCES})
+
 set_source_files_properties( ${CVBASE_SOURCES} PROPERTIES COMPILE_DEFINITIONS "${CVBASE_SYMBOLTYPE}")
 
 set(CVBASE_INCLUDE_DIRS ${CMAKE_CURRENT_LIST_DIR})
@@ -32,15 +42,6 @@ if ( WIN32 )
 else ()
   set(CVBASE_LIBS cvbase)
 endif ()
-
-# build cfg parser
-set(CFG_SOURCES
-	${CFG_DIR}/cfg_parser.h
-	${CFG_DIR}/cfg_parser.cpp
-	)
-
-add_library(cfg_lib ${CFG_SOURCES})
-set(CV_BASE_LIBS ${CV_BASE_LIBS} cfg_lib)
   
 set(CVBASE_INCLUDE_DIRS ${CMAKE_CURRENT_LIST_DIR})
   

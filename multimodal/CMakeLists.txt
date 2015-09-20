@@ -12,4 +12,4 @@ endif ()
 include(${CMAKE_CURRENT_LIST_DIR}/../cvbase/cvbase.cmake)
 
 add_executable( hog examples/hog.cpp )
-target_link_libraries( hog cvbase cfg_lib ${OpenCV_LIBS})
+target_link_libraries( hog cfg_lib cvbase ${OpenCV_LIBS})
