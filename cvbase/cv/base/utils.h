@@ -13,6 +13,9 @@ namespace cv {
 
     void padImage(const cv::Mat& img, cv::Mat* result, int x, int y);
 
+    void normalizeVectorL2(const std::vector<float> vec, std::vector<float>* res,
+                           bool l2_hys = false, float l2_hys_threshold = 0.2f);
+
     void computeGradients(const cv::Mat& image, cv::Mat_<float>* x_grad,
                           cv::Mat_<float>* y_grad, cv::Mat_<float>* thetas,
                           cv::Mat_<float>* mags);

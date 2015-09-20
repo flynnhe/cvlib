@@ -50,6 +50,30 @@ void cv::base::padImage(const cv::Mat& img, cv::Mat* result, int x, int y)
   *result = temp.clone();
 }
 
+// normalize a vector to have unit length
+void cv::base::normalizeVectorL2(const std::vector<float> vec, std::vector<float>* res,
+                                 bool l2_hys, float l2_hys_threshold)
+{
+  float mag = 0.0f;
+  float eps = 1e-9f;
+  res->clear();
+  for (int i = 0; i < (int)vec.size(); ++i) {
+    mag += vec[i] * vec[i];
+  }
+  mag = sqrt(mag + eps);
+  for (int i = 0; i < (int)vec.size(); ++i) {
+    if (l2_hys) {
+      res->push_back(std::min(l2_hys_threshold, vec[i] / mag));
+    }
+    else {
+      res->push_back(vec[i] / mag);
+    }
+  }
+  if (l2_hys) {
+    normalizeVectorL2(*res, res, false, 0.0f);
+  }
+}
+
 // compute the gradients orientations and magnitudes for an image
 void cv::base::computeGradients(const cv::Mat& image, cv::Mat_<float>* x_grad,
                       cv::Mat_<float>* y_grad, cv::Mat_<float>* thetas,
@@ -90,36 +114,67 @@ void cv::base::computeHOGDescriptor(const cv::Mat_<float>& thetas, const cv::Mat
   assert(thetas.rows % cell_size == 0);
   assert(block_size > cell_size);
 
+  descriptor->clear();
+
   int w = thetas.cols;
   int h = thetas.rows;
   int step_x = cell_size;
   int step_y = cell_size;
-  int bin_size = (int)(180.0f / num_orientations);
+  float PI = cv::base::PI<float>();
+  float bin_size = PI / num_orientations;
 
-  for (int y = 0; y + step_y < h; ++y) {
-    for (int x = 0; x + step_x < w; ++x) {
+  // compute the per-cell histograms
+  std::vector< std::vector<float> > hists;
+  for (int y = 0; y + step_y <= h; y += step_y) {
+    for (int x = 0; x + step_x <= w; x += step_x) {
       // compute the histogram for the (cell_size x cell_size) cell starting at x, y
       std::vector<float> hist(num_orientations, 0.0f);
       for (int offset_y = 0; offset_y < cell_size; ++offset_y) {
         for (int offset_x = 0; offset_x < cell_size; ++offset_x) {
+          float rad = fmod(thetas(y + offset_y, x + offset_x), PI); // unsigned orientation
+          if (rad < 0.0) { rad += PI; }
+          int idx = (int)(rad / bin_size); // left idx
+          float nearest_center = (idx + 0.5f) * bin_size;
+          float portion;
+          int idx_lo, idx_hi;
+          // do linear interpolation between bins
+          if (rad >= nearest_center) {
+            portion = (rad - nearest_center) / bin_size;
+            idx_lo = idx;
+            idx_hi = (idx_lo + 1) % num_orientations;
+          }
+          else {
+            portion = (nearest_center - rad) / bin_size;
+            idx_lo = idx - 1;
+            if (idx_lo < 0) idx_lo += num_orientations;
+            idx_hi = (idx_lo + 1) % num_orientations;
+          }
           float mag = mags(y + offset_y, x + offset_x);
-          int deg = (int)cv::base::RAD_TO_DEG<double>(thetas(y + offset_y, x + offset_x));
-          if (deg > 180) {
-            deg -= 180;
-          }
-          if (deg < 0) {
-            deg += 180;
-          }
-          deg %= 180;
-          int excess = (int)(deg % bin_size);
-          int nearest_orientation = deg - excess;
-          float portion = 1.0f * excess / bin_size; // put this portion of magnitude into lower bin and put remainder into next bin
-          int idx = (nearest_orientation / bin_size);
-          if (idx < 0) idx = num_orientations + idx;
-          hist[idx] += portion * mag;
-          hist[(idx+1)%num_orientations] += (1 - portion) * mag;
+          hist[idx_lo] += (1 - portion) * mag;
+          hist[idx_hi] += portion * mag;
         }
       }
+      hists.push_back(hist);
+    }
+  }
+
+  // do block normalization
+  int total_x_cells = w / cell_size;
+  int total_y_cells = h / cell_size;
+  int num_cells_per_block = block_size / cell_size; // number of cells in block (in both dirs)
+  for (int y = 0; y + num_cells_per_block <= total_y_cells; ++y) {
+    for (int x = 0; x + num_cells_per_block <= total_x_cells; ++x) {
+      std::vector<float> hist;
+      for (int c1 = 0; c1 < num_cells_per_block; ++c1) {
+        int y_idx = (y + c1) * total_x_cells;
+        for (int c2 = 0; c2 < num_cells_per_block; ++c2) {
+          int x_idx = x + c2;
+          hist.insert(hist.end(), hists[x_idx + y_idx].begin(),
+                                  hists[x_idx + y_idx].end());
+        }
+      }
+      normalizeVectorL2(hist, &hist, true, 0.2f);
+      descriptor->insert(descriptor->end(), hist.begin(), hist.end());
     }
   }
 }
