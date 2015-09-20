@@ -3,6 +3,7 @@
 
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
+#include <opencv2/objdetect/objdetect.hpp>
 
 #include <iostream>
 
@@ -55,7 +56,7 @@ int main(int argc, const char** argv)
   }
 
   // TEST
-  cv::resize(left, left, cv::Size(128, 128));
+  cv::resize(left, left, cv::Size(64, 128));
 
   // extract the gradients
   cv::Mat_<float> x_grad, y_grad, thetas, mags;
@@ -66,6 +67,10 @@ int main(int argc, const char** argv)
   computeHOGDescriptor(thetas, mags,
                       options.cell_size, options.block_size, options.num_orientations,
                       &descriptor);
+
+  cv::HOGDescriptor desc;
+  std::vector<float> vals;
+  desc.compute(left, vals, cv::Size(8, 8), cv::Size(0, 0));
 
   return 0;
 }
