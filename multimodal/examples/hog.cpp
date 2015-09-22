@@ -1,4 +1,3 @@
-#include <cv/base/cfg_parser/cfg_parser.h>
 #include <cv/base/utils.h>
 
 #include <opencv2/highgui/highgui.hpp>
@@ -9,25 +8,8 @@
 
 using namespace cv::base;
 
-struct Options {
-  int cells_per_block;
-  int cells_per_image_w;
-  int cells_per_image_h;
-  int num_orientations;
-};
-
 static void usage(const char* progname) {
   std::cout << "Usage: " << progname << " <cfg>" << std::endl;
-}
-
-static bool configure(ConfigParser& cfg, Options* options) {
-  // read HOG settings
-  bool success = true;
-  options->cells_per_block = cfg.get("cells_per_block", 2, "HOG");
-  options->cells_per_image_w = cfg.get("cells_per_image_w", 8, "HOG");
-  options->cells_per_image_h = cfg.get("cells_per_image_h", 8, "HOG");
-  options->num_orientations = cfg.get("num_orientations", 9, "HOG");
-  return success;
 }
 
 int main(int argc, const char** argv)
@@ -43,8 +25,8 @@ int main(int argc, const char** argv)
     return 1;
   }
 
-  Options options;
-  bool success = configure(cfg, &options);
+  HOGSettings settings;
+  bool success = settings.configure(cfg);
 
   std::string leftpath = cfg.get<std::string>("left", "", "Paths");
   std::string rightpath = cfg.get<std::string>("right", "", "Paths");
@@ -63,14 +45,11 @@ int main(int argc, const char** argv)
   cv::Mat patch(left(cv::Rect(35, 43, 128, 128)));
 
   cv::Rect rect;
-  findClosestHOG(patch, left, options.num_orientations,
-                 options.cells_per_block, options.cells_per_image_h,
-                 options.cells_per_image_w,
-                 &rect);
+  findClosestHOG(patch, left, settings, &rect);
 
-  cv::rectangle(left, rect, cv::Scalar(255, 253, 34), 1);
+  /*cv::rectangle(left, rect, cv::Scalar(255, 253, 34), 1);
   cv::imwrite("left.png", left);
-  cv::imwrite("patch.png", patch);
+  cv::imwrite("patch.png", patch);*/
 
   return 0;
 }

@@ -1,10 +1,20 @@
 #ifndef INCLUDED_IMAGE_UTILS_H
 #define INCLUDED_IMAGE_UTILS_H
 
+#include <cv/base/cfg_parser/cfg_parser.h>
 #include <opencv2/core/core.hpp>
 
 namespace cv {
   namespace base {
+
+    struct HOGSettings {
+      int cells_per_block;
+      int cells_per_image_w;
+      int cells_per_image_h;
+      int num_orientations;
+      bool configure(ConfigParser& cfg);
+    };
+
     template <typename T> T PI() { return (T) 3.141592653589793238462643383279502884e+00; }
     template <typename T> T INV_PI() { return (T) 0.31830988618379067153776752674503; }
 
@@ -27,8 +37,7 @@ namespace cv {
                               std::vector<float>* descriptor);
 
     void findClosestHOG(const cv::Mat& object, const cv::Mat& image,
-                        int num_orientations, int cells_per_block,
-                        int cells_per_image_h, int cells_per_image_w,
+                        const HOGSettings& settings,
                         cv::Rect* rect);
   } // end namespace base
 } // end namespace cv

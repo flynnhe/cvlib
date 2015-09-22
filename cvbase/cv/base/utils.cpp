@@ -1,5 +1,15 @@
 #include "utils.h"
 
+// read in the HOG settings
+bool cv::base::HOGSettings::configure(ConfigParser& cfg) {
+  bool success = true;
+  cells_per_block = cfg.get("cells_per_block", 2, "HOG");
+  cells_per_image_w = cfg.get("cells_per_image_w", 8, "HOG");
+  cells_per_image_h = cfg.get("cells_per_image_h", 8, "HOG");
+  num_orientations = cfg.get("num_orientations", 9, "HOG");
+  return success;
+}
+
 // pad an image by copying the pixels on the border
 void cv::base::padImage(const cv::Mat& img, cv::Mat* result, int x, int y)
 {
@@ -192,14 +202,13 @@ void cv::base::computeHOGDescriptor(const cv::Mat_<float>& thetas, const cv::Mat
       descriptor->insert(descriptor->end(), hist.begin(), hist.end());
     }
   }
-  int t = 2;
 }
 
 // Given a HOG descriptor of an object to be found,
 // finds the closest HOG match in the whole image
-void cv::base::findClosestHOG(const cv::Mat& object, const cv::Mat& image,
-                              int num_orientations, int cells_per_block,
-                              int cells_per_image_h, int cells_per_image_w,
+void cv::base::findClosestHOG(const cv::Mat& object,
+                              const cv::Mat& image,
+                              const HOGSettings& settings,
                               cv::Rect* rect)
 {
   // extract the gradients of object
@@ -212,7 +221,7 @@ void cv::base::findClosestHOG(const cv::Mat& object, const cv::Mat& image,
   // compute the object HOG descriptor
   std::vector<float> descriptor_obj;
   computeHOGDescriptor(thetas_obj, mags_obj,
-    cell_size, block_size, num_orientations,
+    cell_size, block_size, settings.num_orientations,
     &descriptor_obj);
 
   // compute gradients for the whole image
@@ -226,12 +235,12 @@ void cv::base::findClosestHOG(const cv::Mat& object, const cv::Mat& image,
 #pragma omp parallel for
   for (int scale = 16; scale <= 256; scale += 8) {
     std::vector<float> descriptor;
-    int cell_size = scale / cells_per_image_w;
-    int block_size = cell_size * cells_per_block;
+    int cell_size = scale / settings.cells_per_image_w;
+    int block_size = cell_size * settings.cells_per_block;
     for (int y = 0; y + scale < image.rows; y += 2) {
       for (int x = 0; x + scale < image.cols; x += 2) {
         cv::Rect r(x, y, scale, scale);
-        computeHOGDescriptor(thetas_im(r), mags_im(r), cell_size, block_size, num_orientations, &descriptor);
+        computeHOGDescriptor(thetas_im(r), mags_im(r), cell_size, block_size, settings.num_orientations, &descriptor);
         float dist = getL2Distance(descriptor, descriptor_obj);
         if (dist < mindist) {
           mindist = dist;
