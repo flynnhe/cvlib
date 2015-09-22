@@ -13,6 +13,8 @@ namespace cv {
 
     void padImage(const cv::Mat& img, cv::Mat* result, int x, int y);
 
+    float getL2Distance(const std::vector<float>& vec1, const std::vector<float>& vec2);
+
     void normalizeVectorL2(const std::vector<float> vec, std::vector<float>* res,
                            bool l2_hys = false, float l2_hys_threshold = 0.2f);
 
@@ -23,6 +25,11 @@ namespace cv {
     void computeHOGDescriptor(const cv::Mat_<float>& thetas, const cv::Mat_<float> mags,
                               int cell_size, int block_size, int num_orientations,
                               std::vector<float>* descriptor);
+
+    void findClosestHOG(const cv::Mat& object, const cv::Mat& image,
+                        int num_orientations, int cells_per_block,
+                        int cells_per_image_h, int cells_per_image_w,
+                        cv::Rect* rect);
   } // end namespace base
 } // end namespace cv
 

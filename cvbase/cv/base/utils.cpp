@@ -50,6 +50,17 @@ void cv::base::padImage(const cv::Mat& img, cv::Mat* result, int x, int y)
   *result = temp.clone();
 }
 
+// get the L2 distance between two vectors
+float cv::base::getL2Distance(const std::vector<float>& vec1, const std::vector<float>& vec2)
+{
+  assert(vec1.size() == vec2.size());
+  float dist = 0.0f;
+  for (int i = 0; i < (int)vec1.size(); ++i) {
+    dist += (vec2[i] - vec1[i])*(vec2[i] - vec1[i]);
+  }
+  return dist;
+}
+
 // normalize a vector to have unit length
 void cv::base::normalizeVectorL2(const std::vector<float> vec, std::vector<float>* res,
                                  bool l2_hys, float l2_hys_threshold)
@@ -113,8 +124,7 @@ void cv::base::computeHOGDescriptor(const cv::Mat_<float>& thetas, const cv::Mat
   assert(thetas.cols % cell_size == 0);
   assert(thetas.rows % cell_size == 0);
   assert(block_size > cell_size);
-
-  descriptor->clear();
+  assert(block_size % 2 == 0);
 
   int w = thetas.cols;
   int h = thetas.rows;
@@ -122,6 +132,11 @@ void cv::base::computeHOGDescriptor(const cv::Mat_<float>& thetas, const cv::Mat
   int step_y = cell_size;
   float PI = cv::base::PI<float>();
   float bin_size = PI / num_orientations;
+  int cells_per_block = (block_size / cell_size) * (block_size / cell_size);
+
+  int desc_size = num_orientations * cells_per_block * ((w / cell_size) - 1) * ((h / cell_size) - 1);
+  descriptor->clear();
+  descriptor->reserve(desc_size);
 
   // compute the per-cell histograms
   std::vector< std::vector<float> > hists;
@@ -177,4 +192,55 @@ void cv::base::computeHOGDescriptor(const cv::Mat_<float>& thetas, const cv::Mat
       descriptor->insert(descriptor->end(), hist.begin(), hist.end());
     }
   }
+  int t = 2;
+}
+
+// Given a HOG descriptor of an object to be found,
+// finds the closest HOG match in the whole image
+void cv::base::findClosestHOG(const cv::Mat& object, const cv::Mat& image,
+                              int num_orientations, int cells_per_block,
+                              int cells_per_image_h, int cells_per_image_w,
+                              cv::Rect* rect)
+{
+  // extract the gradients of object
+  cv::Mat_<float> x_grad_obj, y_grad_obj, thetas_obj, mags_obj;
+  computeGradients(object, &x_grad_obj, &y_grad_obj, &thetas_obj, &mags_obj);
+
+  int cell_size = object.cols / 8;
+  int block_size = 2 * cell_size;
+
+  // compute the object HOG descriptor
+  std::vector<float> descriptor_obj;
+  computeHOGDescriptor(thetas_obj, mags_obj,
+    cell_size, block_size, num_orientations,
+    &descriptor_obj);
+
+  // compute gradients for the whole image
+  cv::Mat_<float> x_grad_im, y_grad_im, thetas_im, mags_im;
+  computeGradients(image, &x_grad_im, &y_grad_im, &thetas_im, &mags_im);
+  
+  float mindist = FLT_MAX;
+  int minx = 0, miny = 0;
+  int minscale = INT_MAX;
+
+#pragma omp parallel for
+  for (int scale = 16; scale <= 256; scale += 8) {
+    std::vector<float> descriptor;
+    int cell_size = scale / cells_per_image_w;
+    int block_size = cell_size * cells_per_block;
+    for (int y = 0; y + scale < image.rows; y += 2) {
+      for (int x = 0; x + scale < image.cols; x += 2) {
+        cv::Rect r(x, y, scale, scale);
+        computeHOGDescriptor(thetas_im(r), mags_im(r), cell_size, block_size, num_orientations, &descriptor);
+        float dist = getL2Distance(descriptor, descriptor_obj);
+        if (dist < mindist) {
+          mindist = dist;
+          minx = x;
+          miny = y;
+          minscale = scale;
+        }
+      }
+    }
+  }
+  *rect = cv::Rect(minx, miny, minscale, minscale);
 }

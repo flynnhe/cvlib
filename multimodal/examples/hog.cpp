@@ -10,8 +10,9 @@
 using namespace cv::base;
 
 struct Options {
-  int cell_size;
-  int block_size;
+  int cells_per_block;
+  int cells_per_image_w;
+  int cells_per_image_h;
   int num_orientations;
 };
 
@@ -22,8 +23,9 @@ static void usage(const char* progname) {
 static bool configure(ConfigParser& cfg, Options* options) {
   // read HOG settings
   bool success = true;
-  options->cell_size = cfg.get("cell_size", 8, "HOG");
-  options->block_size = cfg.get("block_size", 16, "HOG");
+  options->cells_per_block = cfg.get("cells_per_block", 2, "HOG");
+  options->cells_per_image_w = cfg.get("cells_per_image_w", 8, "HOG");
+  options->cells_per_image_h = cfg.get("cells_per_image_h", 8, "HOG");
   options->num_orientations = cfg.get("num_orientations", 9, "HOG");
   return success;
 }
@@ -55,22 +57,20 @@ int main(int argc, const char** argv)
     return 1;
   }
 
-  // TEST
-  cv::resize(left, left, cv::Size(64, 128));
+  // select a random patch in the image and find the closest match
+  // in the full image
+  cv::resize(left, left, cv::Size(256, 256));
+  cv::Mat patch(left(cv::Rect(35, 43, 128, 128)));
 
-  // extract the gradients
-  cv::Mat_<float> x_grad, y_grad, thetas, mags;
-  computeGradients(left, &x_grad, &y_grad, &thetas, &mags);
+  cv::Rect rect;
+  findClosestHOG(patch, left, options.num_orientations,
+                 options.cells_per_block, options.cells_per_image_h,
+                 options.cells_per_image_w,
+                 &rect);
 
-  // compute the orientation histograms
-  std::vector<float> descriptor;
-  computeHOGDescriptor(thetas, mags,
-                      options.cell_size, options.block_size, options.num_orientations,
-                      &descriptor);
-
-  cv::HOGDescriptor desc;
-  std::vector<float> vals;
-  desc.compute(left, vals, cv::Size(8, 8), cv::Size(0, 0));
+  cv::rectangle(left, rect, cv::Scalar(255, 253, 34), 1);
+  cv::imwrite("left.png", left);
+  cv::imwrite("patch.png", patch);
 
   return 0;
 }
