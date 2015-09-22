@@ -48,7 +48,7 @@ int ConfigParser::readFile(const std::string& in_file) {
 	unsigned int linenumber = 0;
 	vector<string> tokens;
 	string keyword, value, comment, section;
-	unsigned int pos;
+	size_t pos;
 	int state = SL_NORMAL;
 	string tmp;
 	
