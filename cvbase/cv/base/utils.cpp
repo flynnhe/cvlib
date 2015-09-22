@@ -7,6 +7,8 @@ bool cv::base::HOGSettings::configure(ConfigParser& cfg) {
   cells_per_image_w = cfg.get("cells_per_image_w", 8, "HOG");
   cells_per_image_h = cfg.get("cells_per_image_h", 8, "HOG");
   num_orientations = cfg.get("num_orientations", 9, "HOG");
+  min_scale = cfg.get("min_scale", 16);
+  max_scale = cfg.get("max_scale", 64);
   return success;
 }
 
@@ -215,8 +217,8 @@ void cv::base::findClosestHOG(const cv::Mat& object,
   cv::Mat_<float> x_grad_obj, y_grad_obj, thetas_obj, mags_obj;
   computeGradients(object, &x_grad_obj, &y_grad_obj, &thetas_obj, &mags_obj);
 
-  int cell_size = object.cols / 8;
-  int block_size = 2 * cell_size;
+  int cell_size = object.cols / settings.cells_per_image_w;
+  int block_size = cell_size * settings.cells_per_block;
 
   // compute the object HOG descriptor
   std::vector<float> descriptor_obj;
@@ -233,7 +235,7 @@ void cv::base::findClosestHOG(const cv::Mat& object,
   int minscale = INT_MAX;
 
 #pragma omp parallel for
-  for (int scale = 16; scale <= 256; scale += 8) {
+  for (int scale = settings.min_scale; scale <= settings.max_scale; scale += settings.cells_per_image_w) {
     std::vector<float> descriptor;
     int cell_size = scale / settings.cells_per_image_w;
     int block_size = cell_size * settings.cells_per_block;

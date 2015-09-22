@@ -12,6 +12,8 @@ namespace cv {
       int cells_per_image_w;
       int cells_per_image_h;
       int num_orientations;
+      int min_scale;
+      int max_scale;
       bool configure(ConfigParser& cfg);
     };
 
