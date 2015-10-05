@@ -1,3 +1,4 @@
+#include <cv/base/io.h>
 #include <cv/base/utils.h>
 
 #include <opencv2/highgui/highgui.hpp>
@@ -18,6 +19,13 @@ int main(int argc, const char** argv)
     usage(argv[0]);
     return 1;
   }
+
+  const char* hname = "..//..//data//homography.txt";
+  cv::Mat H;
+  if (!readHomography(hname, &H)) {
+    std::cout << "Error reading Homography" << std::endl;
+    return 1;
+  };
 
   ConfigParser cfg(argv[1]);
   if (!cfg.isValid()) {
@@ -41,15 +49,19 @@ int main(int argc, const char** argv)
 
   // select a random patch in the image and find the closest match
   // in the full image
-  cv::resize(left, left, cv::Size(256, 256));
-  cv::Mat patch(left(cv::Rect(35, 43, 128, 128)));
+  int size = 64 * 3;
+  cv::Rect roi_ir(left.cols / 2 - size/2, left.rows / 2 - size/2, size, size);
+  cv::Mat object(left(roi_ir));
+  computeScaleFromH(H, size, &settings);
+  cv::Rect roi_vis(right.cols / 4, right.rows/4, right.cols /2, right.rows/2);
+  cv::Mat scene(right(roi_vis));
 
   cv::Rect rect;
-  findClosestHOG(patch, left, settings, &rect);
+  findClosestHOG(object, scene, settings, &rect);
 
-  /*cv::rectangle(left, rect, cv::Scalar(255, 253, 34), 1);
-  cv::imwrite("left.png", left);
-  cv::imwrite("patch.png", patch);*/
+  cv::rectangle(scene, rect, cv::Scalar(255, 253, 34), 1);
+  cv::imwrite("right.png", scene);
+  cv::imwrite("patch.png", object);
 
   return 0;
 }
