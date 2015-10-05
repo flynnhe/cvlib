@@ -8,7 +8,8 @@ namespace cv {
   namespace base {
 
     struct HOGSettings {
-      int cells_per_block;
+      int cells_per_block_w;
+      int cells_per_block_h;
       int cells_per_image_w;
       int cells_per_image_h;
       int num_orientations;
@@ -35,12 +36,14 @@ namespace cv {
                           cv::Mat_<float>* mags);
 
     void computeHOGDescriptor(const cv::Mat_<float>& thetas, const cv::Mat_<float> mags,
-                              int cell_size, int block_size, int num_orientations,
+                              int cell_size_w, int cell_size_h, int block_w_in_cells, int block_h_in_cells, int num_orientations,
                               std::vector<float>* descriptor);
 
     void findClosestHOG(const cv::Mat& object, const cv::Mat& image,
                         const HOGSettings& settings,
                         cv::Rect* rect);
+
+    void computeScaleFromH(const cv::Mat& H, int size, HOGSettings* settings);
   } // end namespace base
 } // end namespace cv
 

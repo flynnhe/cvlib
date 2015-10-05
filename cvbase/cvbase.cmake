@@ -12,15 +12,16 @@ set(CVBASE_INCLUDED "CVBASE_INCLUDED")
 
 include_directories(${CMAKE_CURRENT_LIST_DIR} ${CFG_DIR})
 include(${CMAKE_CURRENT_LIST_DIR}/../scripts/cmake/opencv.cmake)
-#include(${CMAKE_CURRENT_LIST_DIR}/cv/base/cfg_parser/cfg_parser.cmake)
 
 set(__CVBASE_P ${CMAKE_CURRENT_LIST_DIR})
 
 # Core files
 set(CVBASE_SOURCES
+  ${__CVBASE_P}/cv/base/io.cpp
 	${__CVBASE_P}/cv/base/utils.cpp
 	)
 set(CVBASE_HEADERS
+  ${__CVBASE_P}/cv/base/io.h
 	${__CVBASE_P}/cv/base/utils.h
 	)
 

@@ -1,9 +1,12 @@
 #include "utils.h"
 
+#include <mutex>
+
 // read in the HOG settings
 bool cv::base::HOGSettings::configure(ConfigParser& cfg) {
   bool success = true;
-  cells_per_block = cfg.get("cells_per_block", 2, "HOG");
+  cells_per_block_w = cfg.get("cells_per_block_w", 2, "HOG");
+  cells_per_block_h = cfg.get("cells_per_block_h", 2, "HOG");
   cells_per_image_w = cfg.get("cells_per_image_w", 8, "HOG");
   cells_per_image_h = cfg.get("cells_per_image_h", 8, "HOG");
   num_orientations = cfg.get("num_orientations", 9, "HOG");
@@ -130,23 +133,26 @@ void cv::base::computeGradients(const cv::Mat& image, cv::Mat_<float>* x_grad,
 
 // compute the HOG descriptor for a given image
 void cv::base::computeHOGDescriptor(const cv::Mat_<float>& thetas, const cv::Mat_<float> mags,
-                                    int cell_size, int block_size, int num_orientations,
+                                    int cell_size_w, int cell_size_h,
+                                    int block_w_in_cells, int block_h_in_cells, int num_orientations,
                                     std::vector<float>* descriptor)
 {
-  assert(thetas.cols % cell_size == 0);
-  assert(thetas.rows % cell_size == 0);
-  assert(block_size > cell_size);
-  assert(block_size % 2 == 0);
+  assert(thetas.cols % cell_size_w == 0);
+  assert(thetas.rows % cell_size_h == 0);
+  assert(block_w_in_cells > cell_size_w);
+  assert(block_h_in_cells > cell_size_h);
+  assert(block_w_in_cells % 2 == 0);
+  assert(block_h_in_cells % 2 == 0);
 
   int w = thetas.cols;
   int h = thetas.rows;
-  int step_x = cell_size;
-  int step_y = cell_size;
+  int step_x = cell_size_w;
+  int step_y = cell_size_h;
   float PI = cv::base::PI<float>();
   float bin_size = PI / num_orientations;
-  int cells_per_block = (block_size / cell_size) * (block_size / cell_size);
+  int cells_per_block = (block_w_in_cells / cell_size_w) * (block_h_in_cells / cell_size_h);
 
-  int desc_size = num_orientations * cells_per_block * ((w / cell_size) - 1) * ((h / cell_size) - 1);
+  int desc_size = num_orientations * cells_per_block * ((w / cell_size_w) - 1) * ((h / cell_size_h) - 1);
   descriptor->clear();
   descriptor->reserve(desc_size);
 
@@ -154,10 +160,10 @@ void cv::base::computeHOGDescriptor(const cv::Mat_<float>& thetas, const cv::Mat
   std::vector< std::vector<float> > hists;
   for (int y = 0; y + step_y <= h; y += step_y) {
     for (int x = 0; x + step_x <= w; x += step_x) {
-      // compute the histogram for the (cell_size x cell_size) cell starting at x, y
+      // compute the histogram for the (cell_size_w x cell_size_w) cell starting at x, y
       std::vector<float> hist(num_orientations, 0.0f);
-      for (int offset_y = 0; offset_y < cell_size; ++offset_y) {
-        for (int offset_x = 0; offset_x < cell_size; ++offset_x) {
+      for (int offset_y = 0; offset_y < cell_size_h; ++offset_y) {
+        for (int offset_x = 0; offset_x < cell_size_w; ++offset_x) {
           float rad = fmod(thetas(y + offset_y, x + offset_x), PI); // unsigned orientation
           if (rad < 0.0) { rad += PI; }
           int idx = (int)(rad / bin_size); // left idx
@@ -186,15 +192,16 @@ void cv::base::computeHOGDescriptor(const cv::Mat_<float>& thetas, const cv::Mat
   }
 
   // do block normalization
-  int total_x_cells = w / cell_size;
-  int total_y_cells = h / cell_size;
-  int num_cells_per_block = block_size / cell_size; // number of cells in block (in both dirs)
-  for (int y = 0; y + num_cells_per_block <= total_y_cells; ++y) {
-    for (int x = 0; x + num_cells_per_block <= total_x_cells; ++x) {
+  int total_x_cells = w / cell_size_w;
+  int total_y_cells = h / cell_size_h;
+  int num_cells_per_block_w = block_w_in_cells / cell_size_w; // number of cells in block horizontally
+  int num_cells_per_block_h = block_h_in_cells / cell_size_h; // number of cells in block vertically
+  for (int y = 0; y + num_cells_per_block_h <= total_y_cells; ++y) {
+    for (int x = 0; x + num_cells_per_block_w <= total_x_cells; ++x) {
       std::vector<float> hist;
-      for (int c1 = 0; c1 < num_cells_per_block; ++c1) {
+      for (int c1 = 0; c1 < num_cells_per_block_h; ++c1) {
         int y_idx = (y + c1) * total_x_cells;
-        for (int c2 = 0; c2 < num_cells_per_block; ++c2) {
+        for (int c2 = 0; c2 < num_cells_per_block_w; ++c2) {
           int x_idx = x + c2;
           hist.insert(hist.end(), hists[x_idx + y_idx].begin(),
                                   hists[x_idx + y_idx].end());
@@ -217,14 +224,18 @@ void cv::base::findClosestHOG(const cv::Mat& object,
   cv::Mat_<float> x_grad_obj, y_grad_obj, thetas_obj, mags_obj;
   computeGradients(object, &x_grad_obj, &y_grad_obj, &thetas_obj, &mags_obj);
 
-  int cell_size = object.cols / settings.cells_per_image_w;
-  int block_size = cell_size * settings.cells_per_block;
+  int cell_size_w = object.cols / settings.cells_per_image_w;
+  int cell_size_h = object.rows / settings.cells_per_image_h;
+  int block_w_in_cells = cell_size_w * settings.cells_per_block_w;
+  int block_h_in_cells = cell_size_h * settings.cells_per_block_h;
 
   // compute the object HOG descriptor
   std::vector<float> descriptor_obj;
   computeHOGDescriptor(thetas_obj, mags_obj,
-    cell_size, block_size, settings.num_orientations,
-    &descriptor_obj);
+                       cell_size_w, cell_size_h,
+                       block_w_in_cells, block_h_in_cells,
+                       settings.num_orientations,
+                       &descriptor_obj);
 
   // compute gradients for the whole image
   cv::Mat_<float> x_grad_im, y_grad_im, thetas_im, mags_im;
@@ -232,26 +243,50 @@ void cv::base::findClosestHOG(const cv::Mat& object,
   
   float mindist = FLT_MAX;
   int minx = 0, miny = 0;
-  int minscale = INT_MAX;
+  int minscale_w = INT_MAX;
+  int minscale_h = INT_MAX;
+  std::mutex mtx;
 
 #pragma omp parallel for
-  for (int scale = settings.min_scale; scale <= settings.max_scale; scale += settings.cells_per_image_w) {
+  for (int scale_y = settings.min_scale; scale_y <= settings.max_scale; scale_y += settings.cells_per_image_h) {
     std::vector<float> descriptor;
-    int cell_size = scale / settings.cells_per_image_w;
-    int block_size = cell_size * settings.cells_per_block;
-    for (int y = 0; y + scale < image.rows; y += 2) {
-      for (int x = 0; x + scale < image.cols; x += 2) {
-        cv::Rect r(x, y, scale, scale);
-        computeHOGDescriptor(thetas_im(r), mags_im(r), cell_size, block_size, settings.num_orientations, &descriptor);
-        float dist = getL2Distance(descriptor, descriptor_obj);
-        if (dist < mindist) {
-          mindist = dist;
-          minx = x;
-          miny = y;
-          minscale = scale;
+    int cell_size_h = scale_y / settings.cells_per_image_h;
+    int block_h_in_cells = cell_size_h * settings.cells_per_block_h;
+    for (int y = 0; y + scale_y < image.rows; y += 4) {
+      for (int dscale_x = -2 * settings.cells_per_image_w; dscale_x <= 2 * settings.cells_per_image_w; dscale_x += settings.cells_per_image_w)
+      {
+        int scale_x = scale_y + dscale_x;
+        for (int x = 0; x + scale_x < image.cols && x + scale_x >= 0; x += 4) {
+          cv::Rect r(x, y, scale_x, scale_y);
+          int cell_size_w = scale_x / settings.cells_per_image_w;
+          int block_w_in_cells = cell_size_w * settings.cells_per_block_w;
+          computeHOGDescriptor(thetas_im(r), mags_im(r),
+                               cell_size_w, cell_size_h,
+                               block_w_in_cells, block_h_in_cells,
+                               settings.num_orientations, &descriptor);
+          float dist = getL2Distance(descriptor, descriptor_obj);
+          mtx.lock();
+          if (dist < mindist) {
+            mindist = dist;
+            minx = x;
+            miny = y;
+            minscale_w = scale_x;
+            minscale_h = scale_y;
+          }
+          mtx.unlock();
         }
       }
     }
   }
-  *rect = cv::Rect(minx, miny, minscale, minscale);
+  *rect = cv::Rect(minx, miny, minscale_w, minscale_h);
+}
+
+// use the homography as an estimate of the scale factor between two images
+void cv::base::computeScaleFromH(const cv::Mat& H, int size, HOGSettings* settings)
+{
+  settings->min_scale = (int)(size * std::min(H.at<float>(0, 0), H.at<float>(1, 1)));
+  settings->max_scale = (int)(size * std::max(H.at<float>(0, 0), H.at<float>(1, 1)));
+  // round these to nearest multiple of cells_per_image_w
+  settings->min_scale = settings->min_scale - (settings->min_scale % settings->cells_per_image_w);
+  settings->max_scale = settings->max_scale + settings->cells_per_image_w - (settings->max_scale + settings->cells_per_image_w) % settings->cells_per_image_w;
 }
