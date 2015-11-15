@@ -71,7 +71,7 @@ static void drawSalientKeyPoints(const cv::Mat& image, const int n_keypoints, cv
 
   std::vector<cv::Point2f> saved_keypoints;
   int k_idx = 1;
-  for (int i = 0; i < n_keypoints; ++i) {
+  for (int i = 0; i < std::min(n_keypoints, (int)keypoints.size()); ++i) {
     cv::Point2f pt(keypoints[i].pt);
     if (closeTo(pt, saved_keypoints, 40)) {
       continue;

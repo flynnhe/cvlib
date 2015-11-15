@@ -58,7 +58,6 @@ int main(int argc, const char** argv)
   for (size_t i = 0; i < ir_images.size(); ++i)
   {
     char filename[256];
-    char* test = "Argaerg";
     sprintf(filename, "%s\\%s", options.vis_dir.c_str(), ir_images[i].c_str());
 
     cv::Mat vis_img = cv::imread(filename, -1);

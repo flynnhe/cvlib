@@ -1,0 +1,9 @@
+﻿Build started 11/15/2015 10:26:07 AM.
+     1>Project "C:\dev\cvlib\multimodal\build\cfg_lib.vcxproj" on node 2 (Build target(s)).
+     1>Lib:
+         cfg_lib.vcxproj -> C:\dev\cvlib\multimodal\build\Debug\cfg_lib.lib
+     1>Done Building Project "C:\dev\cvlib\multimodal\build\cfg_lib.vcxproj" (Build target(s)).
+
+Build succeeded.
+
+Time Elapsed 00:00:00.03
