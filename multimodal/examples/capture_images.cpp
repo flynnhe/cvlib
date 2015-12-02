@@ -140,7 +140,7 @@ void
       std::ostringstream ss;
       ss << std::setw(6) << std::setfill('0') << irIndex - 7;
       out_name.append(ss.str());
-      out_name.append(".png");
+      out_name.append(".pgm");
 
       irMutex.lock();
       irFrame = irImages.front();
