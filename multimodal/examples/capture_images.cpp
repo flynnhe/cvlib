@@ -17,8 +17,8 @@
 #include <opencv2/highgui/highgui.hpp>
 
 #define CLEAR(x) memset(&(x), 0, sizeof(x))
-#define _FRAMERATE      FRAMERATE_15
-#define _VIDEOMODE      VIDEOMODE_1280x960Y8
+#define _FRAMERATE      FRAMERATE_30
+#define _VIDEOMODE      VIDEOMODE_640x480Y8
 
 using namespace cv;
 using namespace FlyCapture2;
