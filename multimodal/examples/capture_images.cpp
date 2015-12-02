@@ -1,13 +1,17 @@
 #include "FlyCapture2.h"
+
 #include <stdint.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <iostream>
 #include <fstream>
+#include <sstream>
 #include <queue>
+
 #include <boost/lexical_cast.hpp>
 #include <boost/thread.hpp>
+
 #include <opencv2/video/tracking.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
@@ -133,7 +137,9 @@ void
 
     if (sizeIR > 0) {
       string out_name(rootnameIR.c_str());
-      out_name.append(boost::lexical_cast<string>(irIndex - 7));
+      std::ostringstream ss;
+      ss << std::setw(6) << std::setfill('0') << irIndex - 7;
+      out_name.append(ss.str());
       out_name.append(".png");
 
       irMutex.lock();
@@ -151,7 +157,9 @@ void
     if (size > 0) {
 
       string filename(rootnameEO.c_str());
-      filename.append(boost::lexical_cast<string>(eoIndex));
+      std::ostringstream ss;
+      ss << std::setw(6) << std::setfill('0') << eoIndex;
+      filename.append(ss.str());
       filename.append(".pgm");
 
       eoMutex.lock();
