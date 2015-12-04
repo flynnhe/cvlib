@@ -25,8 +25,8 @@ using namespace FlyCapture2;
 using namespace std;
 
 boost::mutex eoMutex, irMutex;
-int width = 1280;
-int height = 960;
+int width = 640;
+int height = 480;
 int eoIndex = 0;
 int irIndex = 0;
 bool finishedCapture= false;
@@ -69,7 +69,7 @@ void
     cout << "Unable to open file! - " << filename << "\n";
   }
   uint64_t numBytes;
-  numBytes = (960 * 1280) * 1;
+  numBytes = (480 * 640) * 1;
   fprintf(imagefile, "P5\n%u %u\n255\n", width, height);
 
   try {
