@@ -10,6 +10,7 @@
 #include <opencv2/objdetect/objdetect.hpp>
 #include <opencv2/nonfree/nonfree.hpp>
 
+#include <chrono>
 #include <iostream>
 
 using namespace cv::base;
@@ -84,25 +85,9 @@ static void drawSalientKeyPoints(const cv::Mat& image, const int n_keypoints, cv
   }
 }
 
-static void concatImages(const cv::Mat& img1, const cv::Mat& img2, cv::Mat* result)
-{
-  // make both images the height of img1
-  int h1 = img1.rows;
-  int w1 = img1.cols;
-  int h2 = img2.rows;
-  int w2 = img2.cols;
-  float scaleFactor = 1.f * w2 / h2;
-  cv::Mat left(img1.clone());
-  cv::Mat right(img2.clone());
-  cv::resize(right, right, cv::Size((int)(h1 * scaleFactor), h1));
-  cv::Mat tmp(h1, right.cols + left.cols, CV_8UC3);
-  left.copyTo(tmp(cv::Rect(0, 0, w1, h1)));
-  right.copyTo(tmp(cv::Rect(w1, 0, right.cols, right.rows)));
-  *result = tmp;
-}
-
 int main(int argc, const char** argv)
 {
+
   if (argc < 2) {
     usage(argv[0]);
     return 1;
@@ -120,6 +105,10 @@ int main(int argc, const char** argv)
     std::cout << "Error reading config" << std::endl;
     return 1;
   }
+
+  char fname[256];
+  sprintf(fname, "%s\\offsets.txt", options.result_dir.c_str());
+  FILE* file = fopen(fname, "w");
 
   // load up the images in the directory
   std::vector<std::string> ir_images, vis_images;
@@ -149,7 +138,9 @@ int main(int argc, const char** argv)
     concatImages(salient_ir, vis_img, &result);
 
     cv::imwrite(options.result_dir + "\\" + ir_images[i].c_str(), result);
+    fprintf(file, "%d,%d\n", i, ir_img.cols);
   }
 
+  fclose(file);
   return 0;
 }

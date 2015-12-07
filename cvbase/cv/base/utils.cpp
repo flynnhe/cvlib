@@ -1,5 +1,7 @@
 #include "utils.h"
 
+#include <opencv2/opencv.hpp>
+
 #include <mutex>
 
 // read in the HOG settings
@@ -63,6 +65,23 @@ void cv::base::padImage(const cv::Mat& img, cv::Mat* result, int x, int y)
     }
   }
   *result = temp.clone();
+}
+
+void cv::base::concatImages(const cv::Mat& img1, const cv::Mat& img2, cv::Mat* result)
+{
+  // make both images the height of img1
+  int h1 = img1.rows;
+  int w1 = img1.cols;
+  int h2 = img2.rows;
+  int w2 = img2.cols;
+  float scaleFactor = 1.f * w2 / h2;
+  cv::Mat left(img1.clone());
+  cv::Mat right(img2.clone());
+  cv::resize(right, right, cv::Size((int)(h1 * scaleFactor), h1));
+  cv::Mat tmp(h1, right.cols + left.cols, CV_8UC3);
+  left.copyTo(tmp(cv::Rect(0, 0, w1, h1)));
+  right.copyTo(tmp(cv::Rect(w1, 0, right.cols, right.rows)));
+  *result = tmp;
 }
 
 // get the L2 distance between two vectors
