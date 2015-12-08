@@ -4,6 +4,10 @@ do
   echo "Entering $i/ir"
   cwd=$PWD
   cd $i/ir;
-  ffmpeg -f image2 -r 15 -sameq -s 574x484 -vcodec copy -i "%06d.png" video.avi
+  ffmpeg -f image2 -r 15 -sameq -s 574x484 -vcodec copy -i "%06d.pgm" video.avi
+  cd $cwd;
+  echo "Entering $i/eo"
+  cd $i/eo;
+  ffmpeg -f image2 -r 15 -sameq -s 640x480 -vcodec copy -i "%06d.pgm" video.avi
   cd $cwd;
 done
