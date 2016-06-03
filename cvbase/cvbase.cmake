@@ -10,7 +10,7 @@ if ( NOT CVBASE_INCLUDED )
 
 set(CVBASE_INCLUDED "CVBASE_INCLUDED")
 
-set(OPENCV_REQUIRED_MODULES core imgproc highgui video flann calib3d features2d objdetect ml nonfree ocl)
+set(OPENCV_REQUIRED_MODULES core imgproc highgui video flann calib3d features2d objdetect ml)
 include_directories(${CMAKE_CURRENT_LIST_DIR} ${CFG_DIR})
 include(${CMAKE_CURRENT_LIST_DIR}/../scripts/cmake/opencv.cmake)
 

@@ -1,5 +1,7 @@
 #include "io.h"
+#ifdef _WIN32
 #include <Windows.h>
+#endif
 
 bool cv::base::readFilesInDirectory(const char* path, std::vector<std::string>* files, const char* ext)
 {

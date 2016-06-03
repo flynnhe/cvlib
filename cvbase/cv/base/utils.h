@@ -44,6 +44,8 @@ namespace cv {
                         cv::Rect* rect);
 
     void computeScaleFromH(const cv::Mat& H, int size, HOGSettings* settings);
+
+    void concatImages(const cv::Mat& img1, const cv::Mat& img2, cv::Mat* result);
   } // end namespace base
 } // end namespace cv
 
